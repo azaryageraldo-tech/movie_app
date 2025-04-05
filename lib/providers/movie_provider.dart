@@ -1,71 +1,36 @@
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
 import '../models/movie.dart';
+import '../models/movie_detail.dart';
 import '../services/movie_service.dart';
 
-class MovieProvider extends ChangeNotifier {
+class MovieProvider with ChangeNotifier {
   final MovieService _movieService = MovieService();
   List<Movie> _movies = [];
-  List<Movie> _favorites = [];
-  bool _isLoading = false;
   List<Movie> _searchResults = [];
-  String _searchQuery = '';
+  bool _isLoading = false;
+  String _selectedCategory = 'Popular';
+  List<Movie> _favorites = [];
+  Map<int, double> _userRatings = {};
+  String? _error;
 
   List<Movie> get movies => _movies;
-  List<Movie> get favorites => _favorites;
-  bool get isLoading => _isLoading;
-
-  Future<void> fetchPopularMovies() async {
-    _isLoading = true;
-    notifyListeners();
-
-    try {
-      _movies = await _movieService.getPopularMovies();
-    } catch (e) {
-      _movies = [];
-    }
-
-    _isLoading = false;
-    notifyListeners();
-  }
-
-  Future<void> loadFavorites() async {
-    final box = await Hive.openBox<Movie>('favorites');
-    _favorites = box.values.toList();
-    notifyListeners();
-  }
-
-  Future<void> addToFavorites(Movie movie) async {
-    final box = await Hive.openBox<Movie>('favorites');
-    await box.put(movie.id.toString(), movie);
-    _favorites = box.values.toList();
-    notifyListeners();
-  }
-
-  Future<void> removeFromFavorites(Movie movie) async {
-    final box = await Hive.openBox<Movie>('favorites');
-    await box.delete(movie.id.toString());
-    _favorites = box.values.toList();
-    notifyListeners();
-  }
-
-  bool isFavorite(Movie movie) {
-    return _favorites.any((element) => element.id == movie.id);
-  }
-
   List<Movie> get searchResults => _searchResults;
-  String get searchQuery => _searchQuery;
+  bool get isLoading => _isLoading;
+  String get selectedCategory => _selectedCategory;
+  List<Movie> get favorites => _favorites;
+  String? get error => _error;
+
+  double? getUserRating(int movieId) => _userRatings[movieId];
 
   Future<void> searchMovies(String query) async {
     if (query.isEmpty) {
       _searchResults = [];
-      _searchQuery = '';
       notifyListeners();
       return;
     }
 
     _isLoading = true;
-    _searchQuery = query;
     notifyListeners();
 
     try {
@@ -76,5 +41,51 @@ class MovieProvider extends ChangeNotifier {
 
     _isLoading = false;
     notifyListeners();
+  }
+
+  void rateMovie(Movie movie, double rating) {
+    _userRatings[movie.id] = rating;
+    notifyListeners();
+  }
+
+  Future<void> fetchMovies(String category) async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      _movies = await _movieService.getMovies(category);
+      _selectedCategory = category;
+    } catch (e) {
+      _error = 'Failed to load movies';
+      _movies = [];
+    }
+
+    _isLoading = false;
+    notifyListeners();
+  }
+
+  Future<MovieDetail> fetchMovieDetail(int movieId) async {
+    try {
+      return await _movieService.getMovieDetail(movieId);
+    } catch (e) {
+      throw Exception('Failed to load movie detail');
+    }
+  }
+
+  void addToFavorites(Movie movie) {
+    if (!_favorites.contains(movie)) {
+      _favorites.add(movie);
+      notifyListeners();
+    }
+  }
+
+  void removeFromFavorites(Movie movie) {
+    _favorites.removeWhere((m) => m.id == movie.id);
+    notifyListeners();
+  }
+
+  bool isFavorite(Movie movie) {
+    return _favorites.any((m) => m.id == movie.id);
   }
 }

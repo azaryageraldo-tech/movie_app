@@ -1,8 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+// Perbaiki import
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import '../models/movie.dart';
-import '../providers/movie_provider.dart';
 import '../screens/movie_detail_screen.dart';
+import '../utils/page_transition.dart';
+
+// Update imports
+import 'animated_movie_card.dart';
 
 class MovieCard extends StatelessWidget {
   final Movie movie;
@@ -11,50 +16,52 @@ class MovieCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return AnimatedMovieCard(
       onTap: () {
         Navigator.push(
           context,
-          MaterialPageRoute(
-            builder: (context) => MovieDetailScreen(movie: movie),
-          ),
+          PageTransition(MovieDetailScreen(movie: movie)),
         );
       },
       child: Card(
         elevation: 4,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Expanded(
               child: Stack(
                 children: [
-                  Image.network(
-                    'https://image.tmdb.org/t/p/w500${movie.posterPath}',
-                    fit: BoxFit.cover,
-                    width: double.infinity,
-                    height: double.infinity,
+                  Hero(
+                    tag: 'movie-${movie.id}',
+                    child: ClipRRect(
+                      borderRadius: const BorderRadius.vertical(
+                        top: Radius.circular(12),
+                      ),
+                      child: CachedNetworkImage(
+                        imageUrl: 'https://image.tmdb.org/t/p/w500${movie.posterPath}',
+                        fit: BoxFit.cover,
+                        width: double.infinity,
+                        height: double.infinity,
+                        placeholder: (context, url) => const Center(
+                          child: CircularProgressIndicator(),
+                        ),
+                        errorWidget: (context, url, error) => Container(
+                          color: Colors.grey[300],
+                          child: const Icon(
+                            Icons.error_outline,
+                            size: 40,
+                            color: Colors.grey,
+                          ),
+                        ),
+                      ),
+                    ),
                   ),
                   Positioned(
                     top: 8,
                     right: 8,
-                    child: Consumer<MovieProvider>(
-                      builder: (context, provider, child) {
-                        final isFavorite = provider.isFavorite(movie);
-                        return IconButton(
-                          icon: Icon(
-                            isFavorite ? Icons.favorite : Icons.favorite_border,
-                            color: isFavorite ? Colors.red : Colors.white,
-                          ),
-                          onPressed: () {
-                            if (isFavorite) {
-                              provider.removeFromFavorites(movie);
-                            } else {
-                              provider.addToFavorites(movie);
-                            }
-                          },
-                        );
-                      },
-                    ),
+                    child: FavoriteButton(movie: movie),
                   ),
                 ],
               ),
@@ -68,14 +75,25 @@ class MovieCard extends StatelessWidget {
                     movie.title,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontWeight: FontWeight.bold),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
                   ),
                   const SizedBox(height: 4),
-                  Row(
-                    children: [
-                      const Icon(Icons.star, color: Colors.amber, size: 16),
-                      Text(' ${movie.rating.toStringAsFixed(1)}'),
-                    ],
+                  RatingBar.builder(
+                    initialRating: movie.rating / 2,
+                    minRating: 0,
+                    direction: Axis.horizontal,
+                    allowHalfRating: true,
+                    itemCount: 5,
+                    itemSize: 20,
+                    ignoreGestures: true,
+                    itemBuilder: (context, _) => const Icon(
+                      Icons.star,
+                      color: Colors.amber,
+                    ),
+                    onRatingUpdate: (_) {},
                   ),
                 ],
               ),
