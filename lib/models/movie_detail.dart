@@ -1,10 +1,30 @@
+import '../models/movie.dart';
+
 class MovieDetail {
+  final int id;
+  final String title;
+  final String overview;
+  final String posterPath;
+  final String backdropPath;
+  final double voteAverage;
+  final String releaseDate;
+  final List<String> genres;
+  final int runtime;
   final String? trailerKey;
   final List<Cast> cast;
   final List<Movie> recommendations;
   final List<Review> reviews;
 
   MovieDetail({
+    required this.id,
+    required this.title,
+    required this.overview,
+    required this.posterPath,
+    required this.backdropPath,
+    required this.voteAverage,
+    required this.releaseDate,
+    required this.genres,
+    required this.runtime,
     this.trailerKey,
     required this.cast,
     required this.recommendations,
@@ -23,6 +43,15 @@ class MovieDetail {
     }
 
     return MovieDetail(
+      id: json['id'] as int,
+      title: json['title'] as String,
+      overview: json['overview'] as String,
+      posterPath: json['poster_path'] as String? ?? '',
+      backdropPath: json['backdrop_path'] as String? ?? '',
+      voteAverage: (json['vote_average'] as num).toDouble(),
+      releaseDate: json['release_date'] as String? ?? '',
+      genres: (json['genres'] as List).map((genre) => genre['name'] as String).toList(),
+      runtime: json['runtime'] as int? ?? 0,
       trailerKey: trailerKey,
       cast: (json['credits']?['cast'] as List?)
           ?.map((x) => Cast.fromJson(x))

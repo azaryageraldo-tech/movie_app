@@ -1,52 +1,25 @@
 import 'package:flutter/material.dart';
-import 'package:hive/hive.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import '../models/movie.dart';
 import '../models/movie_detail.dart';
 import '../services/movie_service.dart';
 
 class MovieProvider with ChangeNotifier {
   final MovieService _movieService = MovieService();
+  final Box<Movie> _favoritesBox = Hive.box<Movie>('favorites');
+  
   List<Movie> _movies = [];
   List<Movie> _searchResults = [];
   bool _isLoading = false;
   String _selectedCategory = 'Popular';
-  List<Movie> _favorites = [];
-  Map<int, double> _userRatings = {};
   String? _error;
 
   List<Movie> get movies => _movies;
   List<Movie> get searchResults => _searchResults;
+  List<Movie> get favorites => _favoritesBox.values.toList();
   bool get isLoading => _isLoading;
   String get selectedCategory => _selectedCategory;
-  List<Movie> get favorites => _favorites;
   String? get error => _error;
-
-  double? getUserRating(int movieId) => _userRatings[movieId];
-
-  Future<void> searchMovies(String query) async {
-    if (query.isEmpty) {
-      _searchResults = [];
-      notifyListeners();
-      return;
-    }
-
-    _isLoading = true;
-    notifyListeners();
-
-    try {
-      _searchResults = await _movieService.searchMovies(query);
-    } catch (e) {
-      _searchResults = [];
-    }
-
-    _isLoading = false;
-    notifyListeners();
-  }
-
-  void rateMovie(Movie movie, double rating) {
-    _userRatings[movie.id] = rating;
-    notifyListeners();
-  }
 
   Future<void> fetchMovies(String category) async {
     _isLoading = true;
@@ -65,6 +38,20 @@ class MovieProvider with ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> searchMovies(String query) async {
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      _searchResults = await _movieService.searchMovies(query);
+    } catch (e) {
+      _searchResults = [];
+    }
+
+    _isLoading = false;
+    notifyListeners();
+  }
+
   Future<MovieDetail> fetchMovieDetail(int movieId) async {
     try {
       return await _movieService.getMovieDetail(movieId);
@@ -74,18 +61,48 @@ class MovieProvider with ChangeNotifier {
   }
 
   void addToFavorites(Movie movie) {
-    if (!_favorites.contains(movie)) {
-      _favorites.add(movie);
+    if (!isFavorite(movie)) {
+      _favoritesBox.put(movie.id.toString(), movie);
       notifyListeners();
     }
   }
 
   void removeFromFavorites(Movie movie) {
-    _favorites.removeWhere((m) => m.id == movie.id);
+    _favoritesBox.delete(movie.id.toString());
     notifyListeners();
   }
 
   bool isFavorite(Movie movie) {
-    return _favorites.any((m) => m.id == movie.id);
+    return _favoritesBox.containsKey(movie.id.toString());
+  }
+
+  List<Movie> _watchLater = [];
+  List<Movie> get watchLater => _watchLater;
+
+  final Map<int, double> _userRatings = {};
+
+  void addToWatchLater(Movie movie) {
+    if (!isInWatchLater(movie)) {
+      _watchLater.add(movie);
+      notifyListeners();
+    }
+  }
+
+  void removeFromWatchLater(Movie movie) {
+    _watchLater.removeWhere((m) => m.id == movie.id);
+    notifyListeners();
+  }
+
+  bool isInWatchLater(Movie movie) {
+    return _watchLater.any((m) => m.id == movie.id);
+  }
+
+  void rateMovie(int movieId, double rating) {
+    _userRatings[movieId] = rating;
+    notifyListeners();
+  }
+
+  Map<int, double> getAllUserRatings() {
+    return Map.from(_userRatings);
   }
 }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/movie_provider.dart';
+import '../providers/theme_provider.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -27,39 +28,32 @@ class ProfileScreen extends StatelessWidget {
         builder: (context, provider, child) {
           final watchLaterCount = provider.watchLater.length;
           final favoritesCount = provider.favorites.length;
-          final ratedMovies = provider.getAllUserRatings();
+          final ratings = provider.getAllUserRatings();
 
           return ListView(
             padding: const EdgeInsets.all(16),
             children: [
-              _buildStatCard(
-                context,
-                'Movies to Watch',
-                watchLaterCount.toString(),
-                Icons.bookmark,
+              const CircleAvatar(
+                radius: 50,
+                child: Icon(Icons.person, size: 50),
               ),
               const SizedBox(height: 16),
-              _buildStatCard(
-                context,
-                'Favorite Movies',
-                favoritesCount.toString(),
-                Icons.favorite,
+              const Text(
+                'Movie Statistics',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 16),
-              _buildStatCard(
-                context,
-                'Rated Movies',
-                ratedMovies.length.toString(),
-                Icons.star,
-              ),
-              if (ratedMovies.isNotEmpty) ...[
-                const SizedBox(height: 24),
-                Text(
+              _buildStatCard('Watch Later', watchLaterCount),
+              const SizedBox(height: 8),
+              _buildStatCard('Favorites', favoritesCount),
+              const SizedBox(height: 16),
+              if (ratings.isNotEmpty) ...[
+                const Text(
                   'Your Ratings',
-                  style: Theme.of(context).textTheme.titleLarge,
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 8),
-                ...ratedMovies.map((entry) => _buildRatingItem(context, entry)),
+                ...ratings.entries.map((entry) => _buildRatingItem(entry.key, entry.value)),
               ],
             ],
           );
@@ -68,25 +62,20 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildStatCard(
-    BuildContext context,
-    String title,
-    String value,
-    IconData icon,
-  ) {
+  Widget _buildStatCard(String title, int count) {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Icon(icon, size: 32),
-            const SizedBox(width: 16),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(title, style: Theme.of(context).textTheme.titleMedium),
-                Text(value, style: Theme.of(context).textTheme.headlineSmall),
-              ],
+            Text(title),
+            Text(
+              count.toString(),
+              style: const TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ],
         ),
@@ -94,11 +83,25 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildRatingItem(BuildContext context, MapEntry<int, double> entry) {
-    return ListTile(
-      leading: const Icon(Icons.movie),
-      title: Text(entry.value.toStringAsFixed(1)),
-      trailing: const Icon(Icons.star, color: Colors.amber),
+  Widget _buildRatingItem(int movieId, double rating) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(8),
+        child: Row(
+          children: [
+            const Icon(Icons.movie),
+            const SizedBox(width: 8),
+            Text('Movie ID: $movieId'),
+            const Spacer(),
+            Row(
+              children: [
+                const Icon(Icons.star, color: Colors.amber),
+                Text(rating.toStringAsFixed(1)),
+              ],
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

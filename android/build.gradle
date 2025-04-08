@@ -1,0 +1,14 @@
+buildscript {
+    // ... existing code ...
+    dependencies {
+        // Update this line if needed
+        classpath 'com.android.tools.build:gradle:7.3.0'
+    }
+}
+
+allprojects {
+    repositories {
+        google()
+        mavenCentral()
+    }
+}
